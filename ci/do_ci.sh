@@ -59,10 +59,23 @@ echo "test $BUILD_CONFIG" >> "${SOURCE_DIR}/test.bazelrc"
 echo Building
 bash -x "$UPSTREAM_ENVOY_SRCDIR/ci/do_ci.sh" "$@"
 
-echo Extracting release binaries
-ENVOY_GLOO_BIN_DIR='linux/amd64/build_envoy_release'
+# Determine architecture-specific paths (aligns with upstream's build_setup.sh)
+# ENVOY_BUILD_ARCH is set by upstream's build_setup.sh via uname -m
+if [[ "${ENVOY_BUILD_ARCH:-$(uname -m)}" == "x86_64" ]]; then
+  ARCH_DIR="amd64"
+  ENVOY_ARCH="x64"
+elif [[ "${ENVOY_BUILD_ARCH:-$(uname -m)}" == "aarch64" ]]; then
+  ARCH_DIR="arm64"
+  ENVOY_ARCH="arm64"
+else
+  echo "Unsupported architecture: ${ENVOY_BUILD_ARCH:-$(uname -m)}"
+  exit 1
+fi
+
+echo "Extracting release binaries for ${ARCH_DIR}"
+ENVOY_GLOO_BIN_DIR="linux/${ARCH_DIR}/build_envoy_release"
 mkdir -p "$ENVOY_GLOO_BIN_DIR"
-bazel run @zstd//:zstd_cli -- --stdout -d /build/envoy/x64/bin/release.tar.zst \
+bazel run @zstd//:zstd_cli -- --stdout -d "/build/envoy/${ENVOY_ARCH}/bin/release.tar.zst" \
     | tar xfO - envoy > "$ENVOY_GLOO_BIN_DIR/envoy"
 
 chmod +x "${ENVOY_GLOO_BIN_DIR}/envoy"

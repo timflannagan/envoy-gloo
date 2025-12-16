@@ -63,25 +63,22 @@ gcloud builds submit --project=solo-public --config=cloudbuild.yaml \
    --substitutions=COMMIT_SHA=$(git rev-parse HEAD) .
 ```
 
-# ARM Support (Experimental)
-Support to target arm64 architectures, such as the Raspberry Pi 2 (v1.2) 3 & 4, is **HIGLY EXPERIMENTAL**
-These builds need to be executed on a machine with the same target architecture to produce the desired outcome.
-(**WARNING**: If building on Raspberry Pi 4 or other equivalent SBC, using the 8GB version is recommended. To produce gloo-envoy builds, 4GB might not be enough, especially when including tests)
+# Multi-Architecture Support
 
-## Fastbuild
-This method is intended to produce a gloo-envoy binary without performing tests (Might take approx. 12h to complete on a Raspberry Pi)
+The envoy-gloo container images support both amd64 and arm64 architectures. Docker will
+automatically pull the correct architecture for your platform:
+
 ```bash
-make fast-build-arm
+docker pull quay.io/solo-io/envoy-gloo:VERSION
 ```
 
-## Build release version
-Produces and tests a gloo-envoy build.
-```bash
-make build-arm
-```
+Multi-arch releases are built using the GitHub Actions workflow (`.github/workflows/release-multiarch.yaml`)
+which uses native runners for each architecture.
 
-## Docker Release for ARM
-You can optionally set your own registry to push gloo-envoy images by setting the REGISTRY environment variable or passing it as input. It defaults to `quay.io/solo-io`.
+## Local Multi-arch Build
+
+To build a multi-arch image locally (requires both architecture binaries in `ci/`):
+
 ```bash
-make docker-release-arm
+make docker-build-multiarch
 ```

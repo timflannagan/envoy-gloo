@@ -14,20 +14,19 @@ docker-release:
 	cd ci && docker build -t $(REGISTRY)/envoy-gloo:$(VERSION) . && docker push $(REGISTRY)/envoy-gloo:$(VERSION)
 
 #----------------------------------------------------------------------------------
-# ARM64 Builds
+# Multi-arch Builds
 #----------------------------------------------------------------------------------
+# For multi-arch releases, use the GitHub Actions workflow (release-multiarch.yaml)
+# or run this target locally with both architecture binaries present in ci/
 
-.PHONY: fast-build-arm
-fast-build-arm:
-	./ci/run_envoy_docker.sh 'ci/do_ci.sh bazel.release'
-
-.PHONY: build-arm
-build-arm:
-	./ci/run_envoy_docker.sh 'ci/do_ci.sh bazel.release //test/extensions... //test/common/... //test/integration/...'
-
-.PHONY: docker-release-arm
-docker-release-arm:
-	cd ci && docker build -f Dockerfile-arm -t $(REGISTRY)/envoy-gloo-arm:$(VERSION) . && docker push $(REGISTRY)/envoy-gloo-arm:$(VERSION)
+.PHONY: docker-build-multiarch
+docker-build-multiarch:
+	docker buildx create --name envoy-multiarch-builder --use 2>/dev/null || docker buildx use envoy-multiarch-builder
+	cd ci && docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		-t $(REGISTRY)/envoy-gloo:$(VERSION) \
+		--push \
+		.
 
 gengo:
 	./ci/gen_go.sh

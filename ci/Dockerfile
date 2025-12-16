@@ -1,10 +1,14 @@
 # This file was inspired by a combination of the following:
 # Istio and platform's mesh derivative approach
 # Uses upstream envoy's ubuntu versioning
-# Consuemd by edge to buld gateway-proxy and gloo pods
+# Consumed by edge to build gateway-proxy and gloo pods
 # May be used as is or as a builder intermediate (e.g. for distroless)
 # ON_MINOR_UPDATE: Pull from https://github.com/envoyproxy/envoy/blob/4d46da0bba54dfb849d8bf68b600e53d87310a1a/ci/Dockerfile-envoy#L1-L2
 FROM ubuntu:noble
+
+# TARGETARCH is automatically set by docker buildx for multi-arch builds
+# Values: amd64, arm64
+ARG TARGETARCH
 
 ENV loglevel=info
 
@@ -20,7 +24,16 @@ RUN apt-get update && \
 
 RUN mkdir -p /etc/envoy
 
-ADD envoy.stripped /usr/local/bin/envoy
+# For multi-arch builds, use architecture-specific binary (envoy-amd64.stripped or envoy-arm64.stripped)
+# For single-arch builds (backward compatibility), fall back to envoy.stripped
+COPY envoy-${TARGETARCH}.stripped* envoy.stripped* /tmp/
+RUN if [ -f /tmp/envoy-${TARGETARCH}.stripped ]; then \
+      mv /tmp/envoy-${TARGETARCH}.stripped /usr/local/bin/envoy; \
+    else \
+      mv /tmp/envoy.stripped /usr/local/bin/envoy; \
+    fi && \
+    rm -f /tmp/envoy*.stripped && \
+    chmod +x /usr/local/bin/envoy
 
 ENTRYPOINT ["/usr/local/bin/envoy"]
 CMD ["-c", "/etc/envoy/envoy.yaml"]

@@ -1,0 +1,26 @@
+name: Free Disk Space
+description: Free up disk space on GitHub Actions runners for Envoy builds
+
+runs:
+  using: composite
+  steps:
+    - name: Detect CPU count
+      id: detect-cpu
+      shell: bash
+      run: |
+        CPU_COUNT=$(nproc --all)
+        echo "cpu_count=$CPU_COUNT" >> $GITHUB_OUTPUT
+        echo "Detected CPU count: $CPU_COUNT"
+
+    - name: Free Disk Space
+      # Skip on larger runners where disk space is less constrained
+      if: ${{ steps.detect-cpu.outputs.cpu_count < 8 }}
+      uses: endersonmenezes/free-disk-space@6c4664f43348c8c7011b53488d5ca65e9fc5cd1a
+      with:
+        rm_cmd: "rmz"  # Faster rustacean deletion
+        remove_dotnet: true
+        remove_haskell: true
+        remove_android: true
+        # Free additional space by removing unused packages
+        remove_packages: "azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox postgresql* temurin-* *llvm* mysql* dotnet-sdk-*"
+        remove_packages_one_command: true
